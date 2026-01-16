@@ -11,7 +11,7 @@ return {
           local val = variable.value:gsub("%s+", " ")
 
           -- max length allowed
-          local max_len = 80
+          local max_len = 200
           if #val > max_len then val = val:sub(1, max_len) .. "…" end
 
           if options.virt_text_pos == "inline" then
