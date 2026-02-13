@@ -79,6 +79,13 @@ return {
         -- setting a mapping to false will disable it
         -- ["<C-S>"] = false,
       },
+      t = {
+        -- Disable <C-h> window navigation in terminal mode so backspace works
+        -- (many terminals send <C-h> for backspace, which conflicts with window nav in splits)
+        ["<C-h>"] = false,
+        -- Exit terminal mode with Escape so you can use normal window navigation (<C-w>h/j/k/l)
+        ["<Esc>"] = { "<C-\\><C-n>", desc = "Exit terminal mode" },
+      },
     },
   },
 }
