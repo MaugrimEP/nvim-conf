@@ -48,9 +48,7 @@ return {
           local opts = {}
           local cwd = vim.fn.getcwd()
           for _, name in ipairs { ".venv", "venv", ".env", "env" } do
-            if vim.fn.executable(cwd .. "/" .. name .. "/bin/python") == 1 then
-              table.insert(opts, name)
-            end
+            if vim.fn.executable(cwd .. "/" .. name .. "/bin/python") == 1 then table.insert(opts, name) end
           end
           if vim.env.VIRTUAL_ENV then table.insert(opts, "$VIRTUAL_ENV") end
           table.insert(opts, "system")
@@ -60,36 +58,60 @@ return {
         -- editable=true fields support custom text input via "i"
         -- value holds the current effective value (custom or from options)
         local fields = {
-          { label = "mode",        options = { "launch", "attach" },                                              idx = 1 },
-          { label = "runner",      options = { "direct", "uv" },                                                  idx = 1 },
-          { label = "justMyCode",  options = { "false", "true" },                                                 idx = 1 },
-          { label = "console",     options = { "integratedTerminal", "externalTerminal", "internalConsole" },     idx = 1 },
-          { label = "interpreter", options = detect_venvs(),                                                      idx = 1 },
-          { label = "PYTHONPATH",  options = { ".", "(none)" },                                                   idx = 1 },
-          { label = "args",        options = { "(none)" },                idx = 1, editable = true },
-          { label = "host",        options = { "127.0.0.1", "0.0.0.0" }, idx = 1, editable = true },
-          { label = "port",        options = { "5678", "5679", "5680" },  idx = 1, editable = true },
+          {
+            label = "mode",
+            options = { "launch", "attach" },
+            idx = 1,
+          },
+          {
+            label = "runner",
+            options = { "direct", "uv" },
+            idx = 1,
+          },
+          {
+            label = "justMyCode",
+            options = { "false", "true" },
+            idx = 1,
+          },
+          {
+            label = "console",
+            options = { "integratedTerminal", "externalTerminal", "internalConsole" },
+            idx = 1,
+          },
+          {
+            label = "interpreter",
+            options = detect_venvs(),
+            idx = 1,
+          },
+          {
+            label = "PYTHONPATH",
+            options = { ".", "(none)" },
+            idx = 1,
+          },
+          { label = "args", options = { "(none)" }, idx = 1, editable = true },
+          { label = "host", options = { "127.0.0.1", "0.0.0.0" }, idx = 1, editable = true },
+          { label = "port", options = { "5678", "5679", "5680" }, idx = 1, editable = true },
         }
 
         -- Layout constants
         local LABEL_W = 14
-        local INDENT  = 2
-        local SEP     = 2
-        local width   = 58
-        local height  = #fields + 9  -- blank + fields + blank + hint1 + hint2 + blank + help*3
+        local INDENT = 2
+        local SEP = 2
+        local width = 58
+        local height = #fields + 9 -- blank + fields + blank + hint1 + hint2 + blank + help*3
 
         local popup = Popup {
           position = "50%",
-          size     = { width = width, height = height },
-          border   = {
+          size = { width = width, height = height },
+          border = {
             style = "rounded",
-            text  = { top = " Python Debug Config ", top_align = "center" },
+            text = { top = " Python Debug Config ", top_align = "center" },
           },
           win_options = {
-            cursorline     = true,
-            number         = false,
+            cursorline = true,
+            number = false,
             relativenumber = false,
-            signcolumn     = "no",
+            signcolumn = "no",
           },
         }
 
@@ -106,7 +128,8 @@ return {
           for _, f in ipairs(fields) do
             lines[#lines + 1] = string.format(
               string.rep(" ", INDENT) .. "%-" .. LABEL_W .. "s" .. string.rep(" ", SEP) .. "[%s]",
-              f.label, field_value(f)
+              f.label,
+              field_value(f)
             )
           end
           lines[#lines + 1] = ""
@@ -114,6 +137,7 @@ return {
           lines[#lines + 1] = string.rep(" ", INDENT) .. "j/k: navigate field    <CR>: run    q: close"
 
           -- Attach help section (always reserve 4 lines for stable popup height)
+          -- hint_start is the 0-indexed line of the title (blank separator comes just before it)
           local hint_start = #lines + 1
           if mode == "attach" then
             local host, port = "127.0.0.1", "5678"
@@ -142,8 +166,7 @@ return {
           local launch_only = { runner = true, interpreter = true, PYTHONPATH = true, args = true }
           local attach_only = { host = true, port = true }
           for i, f in ipairs(fields) do
-            local dimmed = (mode == "attach" and launch_only[f.label])
-                        or (mode == "launch" and attach_only[f.label])
+            local dimmed = (mode == "attach" and launch_only[f.label]) or (mode == "launch" and attach_only[f.label])
             local hl = dimmed and "Comment" or "DiagnosticInfo"
             local val = field_value(f)
             vim.api.nvim_buf_add_highlight(popup.bufnr, ns, hl, i, val_col, val_col + #val)
@@ -151,12 +174,12 @@ return {
 
           -- Highlight attach help text
           if mode == "attach" then
-            local title_line = hint_start      -- 0-indexed
-            local cmd_line   = hint_start + 1
-            local arg_line   = hint_start + 2
-            vim.api.nvim_buf_add_highlight(popup.bufnr, ns, "DiagnosticHint",  title_line, 0, -1)
-            vim.api.nvim_buf_add_highlight(popup.bufnr, ns, "DiagnosticInfo",  cmd_line,   0, -1)
-            vim.api.nvim_buf_add_highlight(popup.bufnr, ns, "DiagnosticInfo",  arg_line,   0, -1)
+            local title_line = hint_start
+            local cmd_line = hint_start + 1
+            local arg_line = hint_start + 2
+            vim.api.nvim_buf_add_highlight(popup.bufnr, ns, "DiagnosticHint", title_line, 0, -1)
+            vim.api.nvim_buf_add_highlight(popup.bufnr, ns, "DiagnosticInfo", cmd_line, 0, -1)
+            vim.api.nvim_buf_add_highlight(popup.bufnr, ns, "DiagnosticInfo", arg_line, 0, -1)
           end
         end
 
@@ -245,11 +268,11 @@ return {
           if sel.mode == "attach" then
             -- Attach to a running debugpy process
             dap.run {
-              type         = "python",
-              request      = "attach",
-              name         = "Attach",
-              justMyCode   = sel.justMyCode == "true",
-              connect      = {
+              type = "python",
+              request = "attach",
+              name = "Attach",
+              justMyCode = sel.justMyCode == "true",
+              connect = {
                 host = sel.host,
                 port = tonumber(sel.port),
               },
@@ -288,13 +311,12 @@ return {
           end
 
           dap.adapters.python = {
-            type    = "executable",
+            type = "executable",
             command = adapter_python,
-            args    = { "-m", "debugpy.adapter" },
+            args = { "-m", "debugpy.adapter" },
           }
 
-          local env = {}
-          if sel.PYTHONPATH ~= "(none)" then env.PYTHONPATH = sel.PYTHONPATH end
+          local env = sel.PYTHONPATH ~= "(none)" and { PYTHONPATH = sel.PYTHONPATH } or nil
 
           local args = nil
           if sel.args ~= "(none)" and sel.args ~= "" then
@@ -313,21 +335,21 @@ return {
           end
 
           dap.run {
-            type           = "python",
-            request        = "launch",
-            name           = "Custom launch",
-            program        = "${file}",
-            justMyCode     = sel.justMyCode == "true",
-            console        = sel.console,
+            type = "python",
+            request = "launch",
+            name = "Custom launch",
+            program = "${file}",
+            justMyCode = sel.justMyCode == "true",
+            console = sel.console,
             redirectOutput = true,
-            cwd            = "${workspaceFolder}",
-            pythonPath     = python_path,
-            env            = env,
-            args           = args,
+            cwd = "${workspaceFolder}",
+            pythonPath = python_path,
+            env = env,
+            args = args,
           }
         end)
 
-        popup:map("n", "q",     function() popup:unmount() end)
+        popup:map("n", "q", function() popup:unmount() end)
         popup:map("n", "<Esc>", function() popup:unmount() end)
       end
 
