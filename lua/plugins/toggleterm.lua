@@ -33,7 +33,7 @@ return {
 
         pickers
           .new({}, {
-            prompt_title = "Terminals",
+            prompt_title = "Terminals  [<C-r> rename]",
             finder = finders.new_table({
               results = terms,
               entry_maker = function(term)
@@ -47,12 +47,30 @@ return {
               end,
             }),
             sorter = conf.generic_sorter({}),
-            attach_mappings = function(prompt_bufnr)
+            attach_mappings = function(prompt_bufnr, map)
               actions.select_default:replace(function()
                 actions.close(prompt_bufnr)
                 local sel = action_state.get_selected_entry()
                 if sel then sel.value:toggle() end
               end)
+
+              local rename = function()
+                local sel = action_state.get_selected_entry()
+                if not sel then return end
+                local term = sel.value
+                actions.close(prompt_bufnr)
+                vim.schedule(function()
+                  local current = term.display_name or ("Terminal " .. term.id)
+                  local new_name = vim.fn.input("Rename terminal: ", current)
+                  if new_name ~= "" and new_name ~= current then
+                    term.display_name = new_name
+                    vim.notify(("Terminal %d renamed to '%s'"):format(term.id, new_name), vim.log.levels.INFO)
+                  end
+                end)
+              end
+
+              map("i", "<C-r>", rename)
+              map("n", "<C-r>", rename)
               return true
             end,
           })
