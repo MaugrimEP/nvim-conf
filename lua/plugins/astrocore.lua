@@ -76,6 +76,9 @@ return {
         -- this is useful for naming menus
         -- ["<Leader>b"] = { desc = "Buffers" },
 
+        -- live grep with telescope
+        ["<Leader>fg"] = { function() require("telescope.builtin").live_grep() end, desc = "Find words (live grep)" },
+
         -- setting a mapping to false will disable it
         -- ["<C-S>"] = false,
       },
