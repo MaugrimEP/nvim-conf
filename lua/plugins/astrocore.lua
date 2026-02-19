@@ -79,6 +79,9 @@ return {
         -- live grep with telescope
         ["<Leader>fg"] = { function() require("telescope.builtin").live_grep() end, desc = "Find words (live grep)" },
 
+        -- terminal group label (which-key)
+        ["<Leader>t"] = { desc = "Terminal" },
+
         -- setting a mapping to false will disable it
         -- ["<C-S>"] = false,
       },
