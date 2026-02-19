@@ -19,28 +19,187 @@ return {
         env = { PYTHONPATH = "." },
       })
 
-      -- Find a python that has debugpy installed, for the adapter
+      -- ── History ──────────────────────────────────────────────────────────
+
+      local HISTORY_FILE = vim.fn.stdpath "data" .. "/dap_python_history.json"
+      local HISTORY_MAX  = 10
+
+      local function load_history()
+        local ok, data = pcall(vim.fn.readfile, HISTORY_FILE)
+        if not ok or #data == 0 then return {} end
+        local decoded = vim.json.decode(table.concat(data, ""))
+        return type(decoded) == "table" and decoded or {}
+      end
+
+      local function save_history(sel)
+        local history = load_history()
+        local encoded = vim.json.encode(sel)
+
+        -- Remove duplicate if it exists
+        for i, entry in ipairs(history) do
+          if vim.json.encode(entry) == encoded then
+            table.remove(history, i)
+            break
+          end
+        end
+
+        -- Prepend and cap
+        table.insert(history, 1, sel)
+        if #history > HISTORY_MAX then history[#history] = nil end
+
+        pcall(vim.fn.writefile, { vim.json.encode(history) }, HISTORY_FILE)
+      end
+
+      -- ── Runner ───────────────────────────────────────────────────────────
+
       local function find_adapter_python(runtime_python)
-        -- 1. runtime python itself has debugpy (e.g. after `uv add --dev debugpy`)
         vim.fn.system { runtime_python, "-c", "import debugpy" }
         if vim.v.shell_error == 0 then return runtime_python end
 
-        -- 2. Mason-installed debugpy
         local mason = vim.fn.stdpath "data" .. "/mason/packages/debugpy/venv/bin/python"
         if vim.fn.executable(mason) == 1 then return mason end
 
-        -- 3. Dedicated debugpy venv (nvim-dap-python recommended)
         local dedicated = vim.fn.expand "~/.virtualenvs/debugpy/bin/python"
         if vim.fn.executable(dedicated) == 1 then return dedicated end
 
-        -- 4. uv tool install debugpy
         local uv_tool = vim.fn.expand "~/.local/share/uv/tools/debugpy/bin/python"
         if vim.fn.executable(uv_tool) == 1 then return uv_tool end
 
         return nil
       end
 
-      -- Form-based config builder (<leader>dP)
+      local function run_from_sel(sel)
+        if sel.mode == "attach" then
+          dap.run {
+            type       = "python",
+            request    = "attach",
+            name       = "Attach",
+            justMyCode = sel.justMyCode == "true",
+            connect    = { host = sel.host, port = tonumber(sel.port) },
+          }
+          save_history(sel)
+          return
+        end
+
+        local cwd = vim.fn.getcwd()
+        local python_path
+
+        if sel.runner == "uv" then
+          local handle = io.popen "uv python find 2>/dev/null"
+          if handle then
+            local result = handle:read "*l"
+            handle:close()
+            python_path = (result and result ~= "") and result or "python"
+          else
+            python_path = "python"
+          end
+        elseif sel.interpreter == "system" then
+          python_path = "python"
+        elseif sel.interpreter == "$VIRTUAL_ENV" then
+          python_path = vim.env.VIRTUAL_ENV .. "/bin/python"
+        else
+          python_path = cwd .. "/" .. sel.interpreter .. "/bin/python"
+        end
+
+        local adapter_python = find_adapter_python(python_path)
+        if not adapter_python then
+          vim.notify(
+            "debugpy not found. Install with:\n  uv add --dev debugpy\n  or: uv tool install debugpy",
+            vim.log.levels.ERROR
+          )
+          return
+        end
+
+        dap.adapters.python = {
+          type    = "executable",
+          command = adapter_python,
+          args    = { "-m", "debugpy.adapter" },
+        }
+
+        local env = sel.PYTHONPATH ~= "(none)" and { PYTHONPATH = sel.PYTHONPATH } or nil
+
+        local args = nil
+        if sel.args ~= "(none)" and sel.args ~= "" then
+          if sel.args:sub(1, 1) == "@" then
+            local filepath = vim.fn.expand(sel.args:sub(2))
+            local ok, lines = pcall(vim.fn.readfile, filepath)
+            if ok then
+              args = vim.split(table.concat(lines, " "), "%s+", { trimempty = true })
+            else
+              vim.notify("Could not read args file: " .. filepath, vim.log.levels.WARN)
+            end
+          else
+            args = vim.split(sel.args, "%s+", { trimempty = true })
+          end
+        end
+
+        dap.run {
+          type           = "python",
+          request        = "launch",
+          name           = "Custom launch",
+          program        = "${file}",
+          justMyCode     = sel.justMyCode == "true",
+          console        = sel.console,
+          redirectOutput = true,
+          cwd            = "${workspaceFolder}",
+          pythonPath     = python_path,
+          env            = env,
+          args           = args,
+        }
+        save_history(sel)
+      end
+
+      -- ── History picker (<leader>dh) ───────────────────────────────────────
+
+      local function format_sel(sel)
+        if sel.mode == "attach" then
+          return string.format("[attach] %s:%s  justMyCode:%s", sel.host, sel.port, sel.justMyCode)
+        end
+        local parts = {
+          string.format("[launch] %s", sel.interpreter),
+        }
+        if sel.runner == "uv" then table.insert(parts, "uv") end
+        if sel.justMyCode == "true" then table.insert(parts, "justMyCode") end
+        if sel.args ~= "(none)" then table.insert(parts, "args:" .. sel.args) end
+        if sel.PYTHONPATH ~= "(none)" then table.insert(parts, "PYTHONPATH:" .. sel.PYTHONPATH) end
+        return table.concat(parts, "  ")
+      end
+
+      local function open_history_picker()
+        local history = load_history()
+        if #history == 0 then
+          vim.notify("No debug history yet", vim.log.levels.INFO)
+          return
+        end
+
+        local pickers      = require "telescope.pickers"
+        local finders      = require "telescope.finders"
+        local conf         = require("telescope.config").values
+        local actions      = require "telescope.actions"
+        local action_state = require "telescope.actions.state"
+
+        pickers.new({}, {
+          prompt_title = "Python Debug History",
+          finder = finders.new_table {
+            results = history,
+            entry_maker = function(sel)
+              local display = format_sel(sel)
+              return { value = sel, display = display, ordinal = display }
+            end,
+          },
+          sorter = conf.generic_sorter {},
+          attach_mappings = function(prompt_bufnr)
+            actions.select_default:replace(function()
+              actions.close(prompt_bufnr)
+              run_from_sel(action_state.get_selected_entry().value)
+            end)
+            return true
+          end,
+        }):find()
+      end
+
+      -- ── Form (<leader>dP) ─────────────────────────────────────────────────
+
       local function open_dap_form()
         local Popup = require "nui.popup"
 
@@ -55,63 +214,37 @@ return {
           return opts
         end
 
-        -- editable=true fields support custom text input via "i"
-        -- value holds the current effective value (custom or from options)
+        -- value holds the current effective value (custom override or preset from options)
         local fields = {
-          {
-            label = "mode",
-            options = { "launch", "attach" },
-            idx = 1,
-          },
-          {
-            label = "runner",
-            options = { "direct", "uv" },
-            idx = 1,
-          },
-          {
-            label = "justMyCode",
-            options = { "false", "true" },
-            idx = 1,
-          },
-          {
-            label = "console",
-            options = { "integratedTerminal", "externalTerminal", "internalConsole" },
-            idx = 1,
-          },
-          {
-            label = "interpreter",
-            options = detect_venvs(),
-            idx = 1,
-          },
-          {
-            label = "PYTHONPATH",
-            options = { ".", "(none)" },
-            idx = 1,
-          },
-          { label = "args", options = { "(none)" }, idx = 1, editable = true },
-          { label = "host", options = { "127.0.0.1", "0.0.0.0" }, idx = 1, editable = true },
-          { label = "port", options = { "5678", "5679", "5680" }, idx = 1, editable = true },
+          { label = "mode",        options = { "launch", "attach" },                                          idx = 1 },
+          { label = "runner",      options = { "direct", "uv" },                                              idx = 1 },
+          { label = "justMyCode",  options = { "false", "true" },                                             idx = 1 },
+          { label = "console",     options = { "integratedTerminal", "externalTerminal", "internalConsole" }, idx = 1 },
+          { label = "interpreter", options = detect_venvs(),                                                  idx = 1 },
+          { label = "PYTHONPATH",  options = { ".", "(none)" },                                               idx = 1 },
+          { label = "args",        options = { "(none)" },                                                    idx = 1 },
+          { label = "host",        options = { "127.0.0.1", "0.0.0.0" },                                     idx = 1 },
+          { label = "port",        options = { "5678", "5679", "5680" },                                      idx = 1 },
         }
 
-        -- Layout constants
         local LABEL_W = 14
-        local INDENT = 2
-        local SEP = 2
-        local width = 58
-        local height = #fields + 9 -- blank + fields + blank + hint1 + hint2 + blank + help*3
+        local INDENT  = 2
+        local SEP     = 2
+        local width   = 58
+        local height  = #fields + 9
 
         local popup = Popup {
           position = "50%",
-          size = { width = width, height = height },
-          border = {
+          size     = { width = width, height = height },
+          border   = {
             style = "rounded",
-            text = { top = " Python Debug Config ", top_align = "center" },
+            text  = { top = " Python Debug Config ", top_align = "center" },
           },
           win_options = {
-            cursorline = true,
-            number = false,
+            cursorline     = true,
+            number         = false,
             relativenumber = false,
-            signcolumn = "no",
+            signcolumn     = "no",
           },
         }
 
@@ -136,7 +269,7 @@ return {
           lines[#lines + 1] = string.rep(" ", INDENT) .. "h/l: cycle  i: type value  f: pick args file"
           lines[#lines + 1] = string.rep(" ", INDENT) .. "j/k: navigate field    <CR>: run    q: close"
 
-          -- Attach help section (always reserve 4 lines for stable popup height)
+          -- Attach help (always 4 lines to keep popup height stable)
           -- hint_start is the 0-indexed line of the title (blank separator comes just before it)
           local hint_start = #lines + 1
           if mode == "attach" then
@@ -162,24 +295,20 @@ return {
 
           -- Highlight values; dim fields irrelevant to current mode
           vim.api.nvim_buf_clear_namespace(popup.bufnr, ns, 0, -1)
-          local val_col = INDENT + LABEL_W + SEP + 1 -- +1 to skip "["
-          local launch_only = { runner = true, interpreter = true, PYTHONPATH = true, args = true }
+          local val_col     = INDENT + LABEL_W + SEP + 1
+          local launch_only = { runner = true, interpreter = true, PYTHONPATH = true, args = true, console = true }
           local attach_only = { host = true, port = true }
           for i, f in ipairs(fields) do
-            local dimmed = (mode == "attach" and launch_only[f.label]) or (mode == "launch" and attach_only[f.label])
-            local hl = dimmed and "Comment" or "DiagnosticInfo"
+            local dimmed = (mode == "attach" and launch_only[f.label])
+                        or (mode == "launch" and attach_only[f.label])
             local val = field_value(f)
-            vim.api.nvim_buf_add_highlight(popup.bufnr, ns, hl, i, val_col, val_col + #val)
+            vim.api.nvim_buf_add_highlight(popup.bufnr, ns, dimmed and "Comment" or "DiagnosticInfo", i, val_col, val_col + #val)
           end
 
-          -- Highlight attach help text
           if mode == "attach" then
-            local title_line = hint_start
-            local cmd_line = hint_start + 1
-            local arg_line = hint_start + 2
-            vim.api.nvim_buf_add_highlight(popup.bufnr, ns, "DiagnosticHint", title_line, 0, -1)
-            vim.api.nvim_buf_add_highlight(popup.bufnr, ns, "DiagnosticInfo", cmd_line, 0, -1)
-            vim.api.nvim_buf_add_highlight(popup.bufnr, ns, "DiagnosticInfo", arg_line, 0, -1)
+            vim.api.nvim_buf_add_highlight(popup.bufnr, ns, "DiagnosticHint", hint_start,     0, -1)
+            vim.api.nvim_buf_add_highlight(popup.bufnr, ns, "DiagnosticInfo", hint_start + 1, 0, -1)
+            vim.api.nvim_buf_add_highlight(popup.bufnr, ns, "DiagnosticInfo", hint_start + 2, 0, -1)
           end
         end
 
@@ -210,8 +339,8 @@ return {
           clamp_cursor()
           local f = get_field()
           if f then
-            f.idx = (f.idx % #f.options) + 1
-            f.value = nil -- clear custom value when cycling presets
+            f.idx   = (f.idx % #f.options) + 1
+            f.value = nil
             render()
           end
         end)
@@ -220,13 +349,12 @@ return {
           clamp_cursor()
           local f = get_field()
           if f then
-            f.idx = ((f.idx - 2) % #f.options) + 1
+            f.idx   = ((f.idx - 2) % #f.options) + 1
             f.value = nil
             render()
           end
         end)
 
-        -- "f" to pick a file as args source (only on the args field)
         popup:map("n", "f", function()
           clamp_cursor()
           local f = get_field()
@@ -241,15 +369,12 @@ return {
           end)
         end)
 
-        -- "i" to type a custom value for the current field
         popup:map("n", "i", function()
           clamp_cursor()
           local f = get_field()
           if not f then return end
-          local current = field_value(f)
-          -- schedule so the popup stays visible while input prompt appears
           vim.schedule(function()
-            local val = vim.fn.input { prompt = f.label .. ": ", default = current }
+            local val = vim.fn.input { prompt = f.label .. ": ", default = field_value(f) }
             if val and val ~= "" then
               f.value = val
               render()
@@ -264,96 +389,15 @@ return {
             sel[f.label] = field_value(f)
           end
           popup:unmount()
-
-          if sel.mode == "attach" then
-            -- Attach to a running debugpy process
-            dap.run {
-              type = "python",
-              request = "attach",
-              name = "Attach",
-              justMyCode = sel.justMyCode == "true",
-              connect = {
-                host = sel.host,
-                port = tonumber(sel.port),
-              },
-            }
-            return
-          end
-
-          -- Launch mode: resolve python interpreter
-          local cwd = vim.fn.getcwd()
-          local python_path
-
-          if sel.runner == "uv" then
-            local handle = io.popen "uv python find 2>/dev/null"
-            if handle then
-              local result = handle:read "*l"
-              handle:close()
-              python_path = (result and result ~= "") and result or "python"
-            else
-              python_path = "python"
-            end
-          elseif sel.interpreter == "system" then
-            python_path = "python"
-          elseif sel.interpreter == "$VIRTUAL_ENV" then
-            python_path = vim.env.VIRTUAL_ENV .. "/bin/python"
-          else
-            python_path = cwd .. "/" .. sel.interpreter .. "/bin/python"
-          end
-
-          local adapter_python = find_adapter_python(python_path)
-          if not adapter_python then
-            vim.notify(
-              "debugpy not found. Install with:\n  uv add --dev debugpy\n  or: uv tool install debugpy",
-              vim.log.levels.ERROR
-            )
-            return
-          end
-
-          dap.adapters.python = {
-            type = "executable",
-            command = adapter_python,
-            args = { "-m", "debugpy.adapter" },
-          }
-
-          local env = sel.PYTHONPATH ~= "(none)" and { PYTHONPATH = sel.PYTHONPATH } or nil
-
-          local args = nil
-          if sel.args ~= "(none)" and sel.args ~= "" then
-            if sel.args:sub(1, 1) == "@" then
-              local filepath = vim.fn.expand(sel.args:sub(2))
-              local ok, lines = pcall(vim.fn.readfile, filepath)
-              if ok then
-                local content = table.concat(lines, " ")
-                args = vim.split(content, "%s+", { trimempty = true })
-              else
-                vim.notify("Could not read args file: " .. filepath, vim.log.levels.WARN)
-              end
-            else
-              args = vim.split(sel.args, "%s+", { trimempty = true })
-            end
-          end
-
-          dap.run {
-            type = "python",
-            request = "launch",
-            name = "Custom launch",
-            program = "${file}",
-            justMyCode = sel.justMyCode == "true",
-            console = sel.console,
-            redirectOutput = true,
-            cwd = "${workspaceFolder}",
-            pythonPath = python_path,
-            env = env,
-            args = args,
-          }
+          run_from_sel(sel)
         end)
 
-        popup:map("n", "q", function() popup:unmount() end)
+        popup:map("n", "q",     function() popup:unmount() end)
         popup:map("n", "<Esc>", function() popup:unmount() end)
       end
 
-      vim.keymap.set("n", "<leader>dP", open_dap_form, { desc = "Python debug config form" })
+      vim.keymap.set("n", "<leader>dP", open_dap_form,        { desc = "Python debug config form" })
+      vim.keymap.set("n", "<leader>dh", open_history_picker,  { desc = "Python debug history" })
     end,
   },
 }
