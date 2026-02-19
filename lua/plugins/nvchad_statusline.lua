@@ -52,6 +52,7 @@ return {
     opts = function(_, opts)
       local status = require "astroui.status"
       opts.statuscolumn = {
+        { provider = "%s" },
         {
           provider = function()
             local rel = vim.v.relnum > 0 and tostring(vim.v.relnum) or ""
