@@ -69,11 +69,13 @@ return {
       end
 
       local function run_from_sel(sel)
+        local config_name = (sel.name and sel.name ~= "(none)" and sel.name ~= "") and sel.name or nil
+
         if sel.mode == "attach" then
           dap.run {
             type       = "python",
             request    = "attach",
-            name       = "Attach",
+            name       = config_name or "Attach",
             justMyCode = sel.justMyCode == "true",
             connect    = { host = sel.host, port = tonumber(sel.port) },
           }
@@ -136,7 +138,7 @@ return {
         dap.run {
           type           = "python",
           request        = "launch",
-          name           = "Custom launch",
+          name           = config_name or "Custom launch",
           program        = "${file}",
           justMyCode     = sel.justMyCode == "true",
           console        = sel.console,
@@ -152,12 +154,11 @@ return {
       -- ── History picker (<leader>dh) ───────────────────────────────────────
 
       local function format_sel(sel)
+        local name   = (sel.name and sel.name ~= "(none)" and sel.name ~= "") and ("[" .. sel.name .. "] ") or ""
         if sel.mode == "attach" then
-          return string.format("[attach] %s:%s  justMyCode:%s", sel.host, sel.port, sel.justMyCode)
+          return string.format("%s[attach] %s:%s  justMyCode:%s", name, sel.host, sel.port, sel.justMyCode)
         end
-        local parts = {
-          string.format("[launch] %s", sel.interpreter),
-        }
+        local parts = { string.format("%s[launch] %s", name, sel.interpreter) }
         if sel.runner == "uv" then table.insert(parts, "uv") end
         if sel.justMyCode == "true" then table.insert(parts, "justMyCode") end
         if sel.args ~= "(none)" then table.insert(parts, "args:" .. sel.args) end
@@ -216,6 +217,7 @@ return {
 
         -- value holds the current effective value (custom override or preset from options)
         local fields = {
+          { label = "name",        options = { "(none)" },                                                    idx = 1 },
           { label = "mode",        options = { "launch", "attach" },                                          idx = 1 },
           { label = "runner",      options = { "direct", "uv" },                                              idx = 1 },
           { label = "justMyCode",  options = { "false", "true" },                                             idx = 1 },
@@ -231,7 +233,7 @@ return {
         local INDENT  = 2
         local SEP     = 2
         local width   = 58
-        local height  = #fields + 9
+        local height = #fields + 9
 
         local popup = Popup {
           position = "50%",
