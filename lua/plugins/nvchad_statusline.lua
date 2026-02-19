@@ -51,6 +51,14 @@ return {
     "rebelot/heirline.nvim",
     opts = function(_, opts)
       local status = require "astroui.status"
+      opts.statuscolumn = {
+        {
+          provider = function()
+            local rel = vim.v.relnum > 0 and tostring(vim.v.relnum) or ""
+            return string.format("%4d %3s ", vim.v.lnum, rel)
+          end,
+        },
+      }
       opts.statusline = {
         -- default highlight for the entire statusline
         hl = { fg = "fg", bg = "bg" },
