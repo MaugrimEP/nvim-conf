@@ -1,10 +1,22 @@
 ---@type LazySpec
+
+-- Shared helper: update the winbar of any window showing this terminal
+local function set_term_winbar(term)
+  local name = term.display_name or ("Terminal " .. term.id)
+  if term.bufnr then
+    for _, win in ipairs(vim.fn.win_findbuf(term.bufnr)) do
+      vim.wo[win].winbar = string.format(" [%d] %s", term.id, name)
+    end
+  end
+end
+
 return {
   "akinsho/toggleterm.nvim",
   version = "*",
   opts = {
     shell = "/bin/bash --login",
     open_mapping = [[<C-\>]], -- <count><C-\> toggles terminal by number
+    on_open = function(term) set_term_winbar(term) end,
   },
   keys = {
     { "<Leader>t1", "<cmd>1ToggleTerm<cr>", desc = "Toggle terminal [1-9]" },
@@ -64,6 +76,7 @@ return {
                   local new_name = vim.fn.input("Rename terminal: ", current)
                   if new_name ~= "" and new_name ~= current then
                     term.display_name = new_name
+                    set_term_winbar(term)
                     vim.notify(("Terminal %d renamed to '%s'"):format(term.id, new_name), vim.log.levels.INFO)
                   end
                 end)
@@ -98,6 +111,7 @@ return {
       for _, term in ipairs(terms) do
         if term.bufnr == current_buf then
           term.display_name = args.args
+          set_term_winbar(term)
           vim.notify(("Terminal %d renamed to '%s'"):format(term.id, args.args), vim.log.levels.INFO)
           return
         end
