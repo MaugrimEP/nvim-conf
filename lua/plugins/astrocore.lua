@@ -43,7 +43,8 @@ return {
         spell = false, -- sets vim.opt.spell
         signcolumn = "yes", -- sets vim.opt.signcolumn to yes
         wrap = true, -- sets vim.opt.wrap
-        mouse = "",
+        mouse = "a",
+        mousemodel = "extend",
       },
       g = { -- vim.g.<key>
         -- configure global vim variables (vim.g)
@@ -78,6 +79,20 @@ return {
 
         -- live grep with telescope
         ["<Leader>fg"] = { function() require("telescope.builtin").live_grep() end, desc = "Find words (live grep)" },
+
+        -- toggle mouse mode
+        ["<Leader>um"] = {
+          function()
+            if vim.o.mouse == "" then
+              vim.opt.mouse = "a"
+              vim.notify("Mouse enabled", vim.log.levels.INFO)
+            else
+              vim.opt.mouse = ""
+              vim.notify("Mouse disabled", vim.log.levels.INFO)
+            end
+          end,
+          desc = "Toggle mouse",
+        },
 
         -- terminal group label (which-key)
         ["<Leader>t"] = { desc = "Terminal" },
