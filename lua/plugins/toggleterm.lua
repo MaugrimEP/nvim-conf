@@ -16,7 +16,11 @@ return {
   opts = {
     shell = "/bin/bash --login",
     open_mapping = [[<C-\>]], -- <count><C-\> toggles terminal by number
-    on_open = function(term) set_term_winbar(term) end,
+    on_open = function(term)
+      set_term_winbar(term)
+      vim.wo.number = false
+      vim.wo.relativenumber = false
+    end,
   },
   keys = {
     { "<Leader>t1", "<cmd>1ToggleTerm<cr>", desc = "Toggle terminal [1-9]" },

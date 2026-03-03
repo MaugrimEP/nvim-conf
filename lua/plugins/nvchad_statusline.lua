@@ -54,6 +54,7 @@ return {
       opts.statuscolumn = {
         { provider = "%s" },
         {
+          condition = function() return vim.bo.buftype ~= "terminal" end,
           provider = function()
             local rel = vim.v.relnum > 0 and tostring(vim.v.relnum) or ""
             return string.format("%4d %3s ", vim.v.lnum, rel)
