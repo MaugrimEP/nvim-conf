@@ -43,7 +43,7 @@ return {
         spell = false, -- sets vim.opt.spell
         signcolumn = "yes", -- sets vim.opt.signcolumn to yes
         wrap = true, -- sets vim.opt.wrap
-        mouse = "a",
+        mouse = "nv", -- exclude insert mode so terminal handles right-click paste
         mousemodel = "extend",
       },
       g = { -- vim.g.<key>
@@ -84,7 +84,7 @@ return {
         ["<Leader>um"] = {
           function()
             if vim.o.mouse == "" then
-              vim.opt.mouse = "a"
+              vim.opt.mouse = "nv"
               vim.notify("Mouse enabled", vim.log.levels.INFO)
             else
               vim.opt.mouse = ""
