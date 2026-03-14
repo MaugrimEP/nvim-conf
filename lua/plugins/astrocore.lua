@@ -44,7 +44,6 @@ return {
         signcolumn = "yes", -- sets vim.opt.signcolumn to yes
         wrap = true, -- sets vim.opt.wrap
         mouse = "nv", -- exclude insert mode so terminal handles right-click paste
-        mousemodel = "extend",
       },
       g = { -- vim.g.<key>
         -- configure global vim variables (vim.g)

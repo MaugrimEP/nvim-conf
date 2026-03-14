@@ -15,6 +15,11 @@ return {
   version = "*",
   opts = {
     shell = "/bin/bash --login",
+    direction = "vertical",
+    size = function(term)
+      if term.direction == "vertical" then return math.floor(vim.o.columns * 0.4) end
+      return 10
+    end,
     open_mapping = [[<C-\>]], -- <count><C-\> toggles terminal by number
     on_open = function(term)
       set_term_winbar(term)
@@ -23,6 +28,7 @@ return {
     end,
   },
   keys = {
+    { "<F7>", "<cmd>ToggleTerm<cr>", desc = "Toggle terminal (vertical)" },
     { "<Leader>t1", "<cmd>1ToggleTerm<cr>", desc = "Toggle terminal [1-9]" },
     { "<Leader>t2", "<cmd>2ToggleTerm<cr>", desc = "which_key_ignore" },
     { "<Leader>t3", "<cmd>3ToggleTerm<cr>", desc = "which_key_ignore" },
