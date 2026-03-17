@@ -36,7 +36,7 @@ return {
   { import = "astrocommunity.editing-support.telescope-undo-nvim" },
   { import = "astrocommunity.editing-support.wildfire-nvim" },
 
-  { import = "astrocommunity.file-explorer.yazi-nvim" },
+  -- { import = "astrocommunity.file-explorer.yazi-nvim" },
 
   { import = "astrocommunity.indent.indent-blankline-nvim" },
   { import = "astrocommunity.indent.indent-rainbowline" },
