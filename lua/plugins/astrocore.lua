@@ -21,6 +21,7 @@ return {
     diagnostics = {
       virtual_text = true,
       underline = true,
+      signs = false,
     },
     -- passed to `vim.filetype.add`
     filetypes = {
@@ -44,6 +45,7 @@ return {
         signcolumn = "yes", -- sets vim.opt.signcolumn to yes
         wrap = true, -- sets vim.opt.wrap
         mouse = "nv", -- exclude insert mode so terminal handles right-click paste
+        lazyredraw = true,
       },
       g = { -- vim.g.<key>
         -- configure global vim variables (vim.g)
