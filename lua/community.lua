@@ -45,6 +45,7 @@ return {
   { import = "astrocommunity.motion.vim-matchup" },
   --
   { import = "astrocommunity.pack.rainbow-delimiter-indent-blankline" },
+  { import = "astrocommunity.pack.typst" },
 
   -- { import = "astrocommunity.recipes.heirline-mode-text-statusline" },
   -- { import = "astrocommunity.recipes.heirline-nvchad-statusline" },
