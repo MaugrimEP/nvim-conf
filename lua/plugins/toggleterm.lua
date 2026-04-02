@@ -14,7 +14,7 @@ return {
   "akinsho/toggleterm.nvim",
   version = "*",
   opts = {
-    shell = "/bin/bash --login",
+    shell = vim.o.shell,
     direction = "vertical",
     size = function(term)
       if term.direction == "vertical" then return math.floor(vim.o.columns * 0.4) end
