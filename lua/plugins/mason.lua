@@ -1,28 +1,52 @@
 -- Customize Mason
 
+-- Maps Mason package names to the binary to check on the system PATH.
+-- If the binary is found, the package is skipped from Mason and registered
+-- as a system server for astrolsp instead.
+local prefer_system = {
+  ["basedpyright"] = "basedpyright-langserver",
+  ["ruff"] = "ruff",
+  ["lua-language-server"] = "lua-language-server",
+  ["stylua"] = "stylua",
+  ["debugpy"] = "debugpy",
+  ["tree-sitter-cli"] = "tree-sitter",
+}
+
+local all_packages = {
+  "basedpyright",
+  "ruff",
+  "lua-language-server",
+  "stylua",
+  "debugpy",
+  "tree-sitter-cli",
+}
+
+local ensure_installed = {}
+local system_servers = {}
+
+for _, pkg in ipairs(all_packages) do
+  local bin = prefer_system[pkg]
+  if bin and vim.fn.executable(bin) == 1 then
+    -- server is on the system, tell astrolsp to use it directly
+    table.insert(system_servers, pkg)
+  else
+    -- not found on system, let Mason install it
+    table.insert(ensure_installed, pkg)
+  end
+end
+
 ---@type LazySpec
 return {
-  -- use mason-tool-installer for automatically installing Mason packages
   {
     "WhoIsSethDaniel/mason-tool-installer.nvim",
-    -- overrides `require("mason-tool-installer").setup(...)`
     opts = {
-      -- Make sure to use the names found in `:Mason`
-      ensure_installed = {
-        -- install language servers
-        "basedpyright",
-        "ruff",
-        "lua-language-server",
-
-        -- install formatters
-        "stylua",
-
-        -- install debuggers
-        "debugpy",
-
-        -- install any other package
-        "tree-sitter-cli",
-      },
+      ensure_installed = ensure_installed,
+    },
+  },
+  {
+    "AstroNvim/astrolsp",
+    opts = {
+      servers = system_servers,
     },
   },
 }
