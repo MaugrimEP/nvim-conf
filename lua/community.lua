@@ -29,7 +29,6 @@ return {
   { import = "astrocommunity.diagnostics.trouble-nvim" },
 
   { import = "astrocommunity.editing-support.quick-scope" },
-  { import = "astrocommunity.editing-support.rainbow-delimiters-nvim" },
   { import = "astrocommunity.editing-support.comment-box-nvim" },
   { import = "astrocommunity.editing-support.hypersonic-nvim" },
   -- { import = "astrocommunity.editing-support.multicursors-nvim" }, -- was not here
@@ -39,12 +38,10 @@ return {
   -- { import = "astrocommunity.file-explorer.yazi-nvim" },
 
   { import = "astrocommunity.indent.indent-blankline-nvim" },
-  { import = "astrocommunity.indent.indent-rainbowline" },
 
   { import = "astrocommunity.motion.marks-nvim" },
   { import = "astrocommunity.motion.vim-matchup" },
   --
-  { import = "astrocommunity.pack.rainbow-delimiter-indent-blankline" },
   { import = "astrocommunity.pack.typst" },
 
   -- { import = "astrocommunity.recipes.heirline-mode-text-statusline" },
