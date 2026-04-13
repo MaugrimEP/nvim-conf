@@ -220,7 +220,7 @@ return {
           { label = "name",        options = { "(none)" },                                                    idx = 1 },
           { label = "mode",        options = { "launch", "attach" },                                          idx = 1 },
           { label = "runner",      options = { "direct", "uv" },                                              idx = 1 },
-          { label = "justMyCode",  options = { "false", "true" },                                             idx = 1 },
+          { label = "justMyCode",  options = { "true", "false" },                                             idx = 1 },
           { label = "console",     options = { "integratedTerminal", "externalTerminal", "internalConsole" }, idx = 1 },
           { label = "interpreter", options = detect_venvs(),                                                  idx = 1 },
           { label = "PYTHONPATH",  options = { ".", "(none)" },                                               idx = 1 },
