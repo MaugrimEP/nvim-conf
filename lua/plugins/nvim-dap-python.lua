@@ -135,11 +135,27 @@ return {
           return
         end
 
-        dap.adapters.python = {
-          type    = "executable",
-          command = adapter_python,
-          args    = { "-m", "debugpy.adapter" },
-        }
+        if sel.flake == "true" then
+          -- Redirect stdout→stderr during nix shell hook phase, then restore for debugpy.
+          -- Without this, hooks like venvShellHook pollute the DAP stdout stream.
+          dap.adapters.python = {
+            type    = "executable",
+            command = "bash",
+            args    = {
+              "-c",
+              string.format(
+                "exec 3>&1 1>&2; nix develop --command sh -c 'exec 1>&3 3>&-; exec \"%s\" -m debugpy.adapter'",
+                adapter_python
+              ),
+            },
+          }
+        else
+          dap.adapters.python = {
+            type    = "executable",
+            command = adapter_python,
+            args    = { "-m", "debugpy.adapter" },
+          }
+        end
 
         local env = sel.PYTHONPATH ~= "(none)" and { PYTHONPATH = sel.PYTHONPATH } or nil
 
@@ -184,6 +200,7 @@ return {
         local parts = { string.format("%s[launch] %s", name, sel.interpreter) }
         if sel.runner == "uv" then table.insert(parts, "uv") end
         if sel.justMyCode == "true" then table.insert(parts, "justMyCode") end
+        if sel.flake == "true" then table.insert(parts, "flake") end
         if sel.args ~= "(none)" then table.insert(parts, "args:" .. sel.args) end
         if sel.PYTHONPATH ~= "(none)" then table.insert(parts, "PYTHONPATH:" .. sel.PYTHONPATH) end
         return table.concat(parts, "  ")
@@ -242,6 +259,7 @@ return {
         local fields = {
           { label = "name",        options = { "(none)" },                                                    idx = 1 },
           { label = "mode",        options = { "launch", "attach" },                                          idx = 1 },
+          { label = "flake",       options = { "false", "true" },                                             idx = 1 },
           { label = "runner",      options = { "direct", "uv" },                                              idx = 1 },
           { label = "justMyCode",  options = { "true", "false" },                                             idx = 1 },
           { label = "console",     options = { "integratedTerminal", "externalTerminal", "internalConsole" }, idx = 1 },
@@ -321,7 +339,7 @@ return {
           -- Highlight values; dim fields irrelevant to current mode
           vim.api.nvim_buf_clear_namespace(popup.bufnr, ns, 0, -1)
           local val_col     = INDENT + LABEL_W + SEP + 1
-          local launch_only = { runner = true, interpreter = true, PYTHONPATH = true, args = true, console = true }
+          local launch_only = { runner = true, interpreter = true, PYTHONPATH = true, args = true, console = true, flake = true }
           local attach_only = { host = true, port = true }
           for i, f in ipairs(fields) do
             local dimmed = (mode == "attach" and launch_only[f.label])
