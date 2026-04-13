@@ -6,6 +6,29 @@ return {
       local dap_python = require "dap-python"
       dap_python.setup "python"
 
+      -- Configure external terminal (used when console = "externalTerminal")
+      -- Priority: $TERMINAL env var → x-terminal-emulator → known list
+      local function detect_external_terminal()
+        local env_term = vim.env.TERMINAL
+        if env_term and vim.fn.executable(env_term) == 1 then
+          return { command = env_term, args = { "-e" } }
+        end
+        for _, t in ipairs {
+          { cmd = "x-terminal-emulator", args = { "-e" } },
+          { cmd = "kitty",               args = {} },
+          { cmd = "alacritty",           args = { "-e" } },
+          { cmd = "wezterm",             args = { "start", "--" } },
+          { cmd = "foot",                args = { "-e" } },
+          { cmd = "xterm",               args = { "-e" } },
+          { cmd = "gnome-terminal",      args = { "--" } },
+          { cmd = "konsole",             args = { "-e" } },
+        } do
+          if vim.fn.executable(t.cmd) == 1 then return { command = t.cmd, args = t.args } end
+        end
+      end
+      local ext_term = detect_external_terminal()
+      if ext_term then dap.defaults.fallback.external_terminal = ext_term end
+
       -- Basic config registered for :DapContinue
       table.insert(dap.configurations.python, {
         type = "python",
