@@ -174,6 +174,18 @@ return {
           end
         end
 
+        -- When using an external terminal, suppress the internal terminal split
+        if sel.console == "externalTerminal" then
+          dap.defaults.fallback.terminal_win_cmd = function()
+            return vim.api.nvim_open_win(
+              vim.api.nvim_create_buf(false, true), false,
+              { relative = "editor", width = 1, height = 1, row = 999, col = 999, style = "minimal", focusable = false }
+            )
+          end
+        else
+          dap.defaults.fallback.terminal_win_cmd = nil
+        end
+
         dap.run {
           type           = "python",
           request        = "launch",

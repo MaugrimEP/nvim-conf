@@ -42,7 +42,7 @@ return {
         relativenumber = true, -- sets vim.opt.relativenumber
         number = true, -- sets vim.opt.number
         spell = false, -- sets vim.opt.spell
-        signcolumn = "yes", -- sets vim.opt.signcolumn to yes
+        signcolumn = "yes:2", -- sets vim.opt.signcolumn to yes (2 columns for gitsigns + todo-comments)
         wrap = true, -- sets vim.opt.wrap
         mouse = "nv", -- exclude insert mode so terminal handles right-click paste
         lazyredraw = true,
