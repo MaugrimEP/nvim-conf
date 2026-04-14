@@ -10,6 +10,9 @@ local prefer_system = {
   ["stylua"] = "stylua",
   ["debugpy"] = "debugpy",
   ["tree-sitter-cli"] = "tree-sitter",
+  ["yaml-language-server"] = "yaml-language-server",
+  ["yamllint"] = "yamllint",
+  ["prettier"] = "prettier",
 }
 
 local all_packages = {
@@ -19,6 +22,9 @@ local all_packages = {
   "stylua",
   "debugpy",
   "tree-sitter-cli",
+  "yaml-language-server",
+  "yamllint",
+  "prettier",
 }
 
 local ensure_installed = {}

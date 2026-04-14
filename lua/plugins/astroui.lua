@@ -13,7 +13,27 @@ return {
     -- AstroUI allows you to easily modify highlight groups easily for any and all colorschemes
     highlights = {
       init = { -- this table overrides highlights in all themes
-        -- Normal = { bg = "#000000" },
+        Normal = { bg = "NONE" },
+        NormalFloat = { bg = "NONE" },
+        NeoTreeNormal = { bg = "NONE" },
+        NeoTreeNormalNC = { bg = "NONE" },
+        NeoTreeEndOfBuffer = { bg = "NONE" },
+        TelescopeNormal = { bg = "NONE" },
+        TelescopeBorder = { bg = "NONE" },
+        TelescopePromptNormal = { bg = "NONE" },
+        TelescopePromptBorder = { bg = "NONE" },
+        TelescopeResultsNormal = { bg = "NONE" },
+        TelescopeResultsBorder = { bg = "NONE" },
+        TelescopePreviewNormal = { bg = "NONE" },
+        TelescopePreviewBorder = { bg = "NONE" },
+        SnacksPickerNormal = { bg = "NONE" },
+        SnacksPickerBorder = { bg = "NONE" },
+        SnacksPickerInputNormal = { bg = "NONE" },
+        SnacksPickerInputBorder = { bg = "NONE" },
+        SnacksPickerListNormal = { bg = "NONE" },
+        SnacksPickerListBorder = { bg = "NONE" },
+        SnacksPickerPreviewNormal = { bg = "NONE" },
+        SnacksPickerPreviewBorder = { bg = "NONE" },
       },
       astrodark = { -- a table of overrides/changes when applying the astrotheme theme
         -- Normal = { bg = "#000000" },

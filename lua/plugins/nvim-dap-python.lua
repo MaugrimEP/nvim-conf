@@ -175,6 +175,7 @@ return {
         end
 
         -- When using an external terminal, suppress the internal terminal split
+        -- and hide the console element from the dap-ui bottom panel
         if sel.console == "externalTerminal" then
           dap.defaults.fallback.terminal_win_cmd = function()
             return vim.api.nvim_open_win(
@@ -182,8 +183,20 @@ return {
               { relative = "editor", width = 1, height = 1, row = 999, col = 999, style = "minimal", focusable = false }
             )
           end
+          require("dapui").setup {
+            layouts = {
+              { elements = { { id = "scopes", size = 0.25 }, { id = "breakpoints", size = 0.25 }, { id = "stacks", size = 0.25 }, { id = "watches", size = 0.25 } }, size = 40, position = "left" },
+              { elements = { "repl" }, size = 10, position = "bottom" },
+            },
+          }
         else
           dap.defaults.fallback.terminal_win_cmd = nil
+          require("dapui").setup {
+            layouts = {
+              { elements = { { id = "scopes", size = 0.25 }, { id = "breakpoints", size = 0.25 }, { id = "stacks", size = 0.25 }, { id = "watches", size = 0.25 } }, size = 40, position = "left" },
+              { elements = { "repl", "console" }, size = 10, position = "bottom" },
+            },
+          }
         end
 
         dap.run {
@@ -193,7 +206,7 @@ return {
           program        = "${file}",
           justMyCode     = sel.justMyCode == "true",
           console        = sel.console,
-          redirectOutput = true,
+          redirectOutput = sel.console ~= "externalTerminal",
           cwd            = "${workspaceFolder}",
           pythonPath     = python_path,
           env            = env,
@@ -268,19 +281,34 @@ return {
         end
 
         -- value holds the current effective value (custom override or preset from options)
+        local last = load_history()[1]
         local fields = {
           { label = "name",        options = { "(none)" },                                                    idx = 1 },
           { label = "mode",        options = { "launch", "attach" },                                          idx = 1 },
           { label = "flake",       options = { "false", "true" },                                             idx = 1 },
           { label = "runner",      options = { "direct", "uv" },                                              idx = 1 },
           { label = "justMyCode",  options = { "true", "false" },                                             idx = 1 },
-          { label = "console",     options = { "integratedTerminal", "externalTerminal", "internalConsole" }, idx = 1 },
+          { label = "console",     options = { "externalTerminal", "integratedTerminal", "internalConsole" }, idx = 1 },
           { label = "interpreter", options = detect_venvs(),                                                  idx = 1 },
           { label = "PYTHONPATH",  options = { ".", "(none)" },                                               idx = 1 },
           { label = "args",        options = { "(none)" },                                                    idx = 1 },
           { label = "host",        options = { "127.0.0.1", "0.0.0.0" },                                     idx = 1 },
           { label = "port",        options = { "5678", "5679", "5680" },                                      idx = 1 },
         }
+
+        -- Pre-populate fields from last history entry
+        if last then
+          for _, f in ipairs(fields) do
+            local v = last[f.label]
+            if v then
+              local found = false
+              for i, opt in ipairs(f.options) do
+                if opt == v then f.idx = i; found = true; break end
+              end
+              if not found then f.value = v end
+            end
+          end
+        end
 
         local LABEL_W = 14
         local INDENT  = 2
@@ -449,6 +477,38 @@ return {
 
         popup:map("n", "q",     function() popup:unmount() end)
         popup:map("n", "<Esc>", function() popup:unmount() end)
+      end
+
+      -- ── Auto-print REPL expressions to stdout (like PyCharm) ────────────
+      -- When typing `expr` in dap>, also send print(expr) so it appears in terminal
+      local _repl_orig = dap.repl.execute
+      dap.repl.execute = function(input)
+        _repl_orig(input)
+        local trimmed = input:match("^%s*(.-)%s*$")
+        local skip = trimmed == ""
+          or trimmed:match("^print%(")
+          or trimmed:match("^[%w_%.%[%]\"']+%s*[+%-*/%%]?=[^=]") -- assignment
+          or trimmed:match("^import%s")
+          or trimmed:match("^from%s")
+          or trimmed:match("^def%s")
+          or trimmed:match("^class%s")
+          or trimmed:match("^for%s")
+          or trimmed:match("^while%s")
+          or trimmed:match("^if%s")
+          or trimmed:match("^return%s")
+          or trimmed:match("^raise%s")
+          or trimmed:match("^del%s")
+        if not skip then
+          local session = dap.session()
+          if session then
+            local fid = session.current_frame and session.current_frame.id
+            session:request("evaluate", {
+              expression = ("__import__('builtins').print(%s, flush=True)"):format(trimmed),
+              frameId    = fid,
+              context    = "repl",
+            }, function() end)
+          end
+        end
       end
 
       vim.keymap.set("n", "<leader>dP", open_dap_form,        { desc = "Python debug config form" })
