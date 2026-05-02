@@ -110,7 +110,7 @@ return {
         local python_path
 
         if sel.runner == "uv" then
-          local handle = io.popen "uv python find 2>/dev/null"
+          local handle = io.popen [[uv run python -c "import sys; print(sys.executable)" 2>/dev/null]]
           if handle then
             local result = handle:read "*l"
             handle:close()
