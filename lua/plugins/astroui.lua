@@ -34,6 +34,7 @@ return {
         SnacksPickerListBorder = { bg = "NONE" },
         SnacksPickerPreviewNormal = { bg = "NONE" },
         SnacksPickerPreviewBorder = { bg = "NONE" },
+        LineNr = { fg = "#000000" },
       },
       astrodark = { -- a table of overrides/changes when applying the astrotheme theme
         -- Normal = { bg = "#000000" },
