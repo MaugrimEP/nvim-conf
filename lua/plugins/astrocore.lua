@@ -51,6 +51,7 @@ return {
         -- configure global vim variables (vim.g)
         -- NOTE: `mapleader` and `maplocalleader` must be set in the AstroNvim opts or before `lazy.setup`
         -- This can be found in the `lua/lazy_setup.lua` file
+        matchup_matchparen_offscreen = { method = "popup" }, -- show offscreen match in a popup instead of the statusline
       },
     },
     -- Mappings can be configured through AstroCore as well.
