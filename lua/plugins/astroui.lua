@@ -34,6 +34,9 @@ return {
         SnacksPickerListBorder = { bg = "NONE" },
         SnacksPickerPreviewNormal = { bg = "NONE" },
         SnacksPickerPreviewBorder = { bg = "NONE" },
+        Sneak = { fg = "#1e1e2e", bg = "#f9e2af", bold = true },
+        SneakScope = { bg = "#45475a" },
+        SneakLabel = { fg = "#1e1e2e", bg = "#f38ba8", bold = true },
       },
       astrodark = { -- a table of overrides/changes when applying the astrotheme theme
         -- Normal = { bg = "#000000" },

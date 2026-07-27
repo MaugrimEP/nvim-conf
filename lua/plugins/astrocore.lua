@@ -3,6 +3,27 @@
 -- NOTE: We highly recommend setting up the Lua Language Server (`:LspInstall lua_ls`)
 --       as this provides autocomplete and documentation while editing
 
+-- Run the builtin `gf` (works in both Normal and Visual mode); if it can't
+-- resolve the file, fall back to a fuzzy Telescope search seeded with the
+-- basename of whatever it was looking at.
+local function gf_with_fuzzy(visual)
+  -- capture the target first so we can seed the fuzzy fallback with it
+  local target
+  if visual then
+    -- getregion works while still in Visual mode (marks aren't set yet)
+    local region = vim.fn.getregion(vim.fn.getpos "v", vim.fn.getpos ".", { type = vim.fn.mode() })
+    target = table.concat(region, "")
+  else
+    target = vim.fn.expand "<cfile>"
+  end
+
+  if pcall(vim.cmd, "normal! gf") then return end -- builtin gf succeeded
+
+  target = vim.trim(target)
+  if target == "" then return end
+  require("telescope.builtin").find_files { default_text = vim.fn.fnamemodify(target, ":t") }
+end
+
 ---@type LazySpec
 return {
   "AstroNvim/astrocore",
@@ -85,6 +106,12 @@ return {
         -- live grep with telescope
         ["<Leader>fg"] = { function() require("telescope.builtin").live_grep() end, desc = "Find words (live grep)" },
 
+        -- goto file under cursor, fall back to fuzzy find if not resolvable
+        ["gf"] = {
+          function() gf_with_fuzzy(false) end,
+          desc = "Goto file (fuzzy fallback)",
+        },
+
         -- toggle mouse mode
         ["<Leader>um"] = {
           function()
@@ -104,6 +131,13 @@ return {
 
         -- setting a mapping to false will disable it
         -- ["<C-S>"] = false,
+      },
+      x = {
+        -- open the visual selection as a file, fall back to fuzzy find
+        ["gf"] = {
+          function() gf_with_fuzzy(true) end,
+          desc = "Goto file from selection (fuzzy fallback)",
+        },
       },
       t = {
         -- Disable <C-h> window navigation in terminal mode so backspace works
