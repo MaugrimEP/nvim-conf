@@ -129,6 +129,12 @@ return {
         -- terminal group label (which-key)
         ["<Leader>t"] = { desc = "Terminal" },
 
+        -- open neo-tree full-screen (takes over the window instead of a sidebar split)
+        ["<Leader>E"] = {
+          function() vim.cmd "Neotree position=current reveal" end,
+          desc = "Explorer (full screen)",
+        },
+
         -- setting a mapping to false will disable it
         -- ["<C-S>"] = false,
       },
