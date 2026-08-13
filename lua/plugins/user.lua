@@ -49,8 +49,8 @@ return {
         change = { text = "█" },
         delete = { text = "▁" },
         topdelete = { text = "▔" },
-        changedelete = { text = "█" },
-        untracked = { text = "█" },
+        changedelete = { text = "~" },
+        untracked = { text = "┆" },
       },
       signs_staged = {
         add = { text = "┃" },
@@ -60,8 +60,10 @@ return {
         changedelete = { text = "~" },
         untracked = { text = "┆" },
       },
-      signcolumn = true,
       signs_staged_enable = true,
+      numhl      = true, -- Toggle with `:Gitsigns toggle_numhl`
+      linehl     = true, -- Toggle with `:Gitsigns toggle_linehl`
+      signcolumn = true,
       word_diff = true,
       current_line_blame = true,
     },
