@@ -67,6 +67,7 @@ return {
         wrap = true, -- sets vim.opt.wrap
         mouse = "nv", -- exclude insert mode so terminal handles right-click paste
         lazyredraw = true,
+        clipboard = "unnamedplus", -- sync yank/paste with system clipboard (via OSC 52 over SSH)
       },
       g = { -- vim.g.<key>
         -- configure global vim variables (vim.g)
@@ -88,6 +89,10 @@ return {
         -- navigate buffer tabs
         ["]b"] = { function() require("astrocore.buffer").nav(vim.v.count1) end, desc = "Next buffer" },
         ["[b"] = { function() require("astrocore.buffer").nav(-vim.v.count1) end, desc = "Previous buffer" },
+
+        -- reorder buffer tabs
+        ["<Leader>bmn"] = { function() require("astrocore.buffer").move(1) end, desc = "Move buffer tab right" },
+        ["<Leader>bmp"] = { function() require("astrocore.buffer").move(-1) end, desc = "Move buffer tab left" },
 
         -- mappings seen under group name "Buffer"
         ["<Leader>bd"] = {
